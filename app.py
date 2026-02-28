@@ -1,276 +1,158 @@
 import streamlit as st
-import numpy as np
 import plotly.graph_objects as go
-import joblib
-from tensorflow.keras.models import load_model
-from PIL import Image
+import pandas as pd
+import random
 
-# ────────────────────────────────────────────────
-# PAGE CONFIG
-# ────────────────────────────────────────────────
-st.set_page_config(
-    page_title="GlucoGuard AI",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Diabetes Predictor", layout="centered")
 
-# ────────────────────────────────────────────────
-# THEME STATE
-# ────────────────────────────────────────────────
+# -------------------------
+# Session State for Dark Mode
+# -------------------------
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-# ────────────────────────────────────────────────
-# GLOBAL BUTTON STYLING (rounded + shadow + hover lift)
-# ────────────────────────────────────────────────
-st.markdown("""
-    <style>
-        div.stButton > button {
-            border-radius: 12px !important;
-            padding: 0.65rem 1.2rem !important;
-            font-weight: 550 !important;
-            border: none !important;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.14) !important;
-            transition: all 0.22s ease !important;
-        }
-        div.stButton > button:hover {
-            box-shadow: 0 6px 14px rgba(0,0,0,0.20) !important;
-            transform: translateY(-2px) !important;
-        }
-        div.stButton > button:active {
-            transform: translateY(0) !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.16) !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# ────────────────────────────────────────────────
-# SIDEBAR – THEME TOGGLE (light appearance)
-# ────────────────────────────────────────────────
-st.sidebar.markdown("### 🌗 Theme Mode")
-
-col1, col2 = st.sidebar.columns(2)
-
-with col1:
-    if st.button("☀️ Light", use_container_width=True,
-                 type="primary" if not st.session_state.dark_mode else "secondary"):
-        st.session_state.dark_mode = False
-        st.rerun()
-
-with col2:
-    if st.button("🌙 Dark", use_container_width=True,
-                 type="primary" if st.session_state.dark_mode else "secondary"):
-        st.session_state.dark_mode = True
-        st.rerun()
-
-if st.session_state.dark_mode:
-    st.sidebar.success("🌙 Dark mode active")
+# Toggle Button
+if st.toggle("🌙 Dark Mode"):
+    st.session_state.dark_mode = True
 else:
-    st.sidebar.info("☀️ Light mode active")
+    st.session_state.dark_mode = False
 
-st.sidebar.caption("You can also use ⋮ → Settings → Theme")
-
-# ────────────────────────────────────────────────
-# THEME CSS
-# ────────────────────────────────────────────────
+# -------------------------
+# CSS Styling
+# -------------------------
 if st.session_state.dark_mode:
     st.markdown("""
-    <style>
-        .stApp { background-color: #0f1117 !important; color: #e2e8f0 !important; }
-        section[data-testid="stSidebar"] { background-color: #161b22 !important; border-right: 1px solid #334155 !important; }
-        h1, h2, h3, h4, h5, h6, p, div, span, label, .st-emotion-cache-1y4p8pa { color: #e2e8f0 !important; }
-        .stSlider label, .stSlider div { color: #cbd5e1 !important; }
-        .stNumberInput input, .stTextInput input, .stSelectbox select {
-            background-color: #1e2530 !important;
-            color: #e2e8f0 !important;
-            border: 1px solid #475569 !important;
-            border-radius: 10px !important;
+        <style>
+        .stApp {
+            background-color: #0f1117;
+            color: white;
         }
-        button[kind="primary"], button[kind="secondary"] {
-            background-color: #334155 !important;
-            color: white !important;
+        .stButton>button {
+            background: linear-gradient(90deg,#4f46e5,#7c3aed);
+            color: white;
+            border-radius: 10px;
+            border: none;
+            padding: 0.6em 1.2em;
         }
-        button:hover { background-color: #475569 !important; }
-        .stAlert, .stSuccess, .stError { background-color: #1e293b !important; color: #e2e8f0 !important; }
-        footer, .stCaption { color: #94a3b8 !important; }
-    </style>
+        .stButton>button:hover {
+            background: linear-gradient(90deg,#4338ca,#6d28d9);
+        }
+        </style>
     """, unsafe_allow_html=True)
 else:
     st.markdown("""
-    <style>
-        .stApp { background-color: #f9fafb !important; }
-        section[data-testid="stSidebar"] {
-            background-color: #ffffff !important;
-            border-right: 1px solid #e5e7eb !important;
+        <style>
+        .stApp {
+            background-color: #ffffff;
+            color: #111827;
         }
-        h1, h2, h3, h4, h5, h6, p, div, span, label { color: #111827 !important; }
-        .stSlider label, .stSlider div { color: #374151 !important; }
-        .stNumberInput input, .stTextInput input, .stSelectbox select {
+        .stButton>button {
+            background: linear-gradient(90deg,#6366f1,#8b5cf6);
+            color: white;
+            border-radius: 10px;
+            border: none;
+            padding: 0.6em 1.2em;
+        }
+        .stButton>button:hover {
+            background: linear-gradient(90deg,#4f46e5,#7c3aed);
+        }
+
+        /* Download Button Fix */
+        button[kind="secondary"] {
             background-color: #ffffff !important;
             color: #111827 !important;
             border: 1px solid #d1d5db !important;
-            border-radius: 10px !important;
         }
-        /* Theme toggle buttons – light & modern */
-        div.stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-            color: white !important;
-        }
-        div.stButton > button[kind="secondary"] {
+
+        button[kind="secondary"]:hover {
             background-color: #f3f4f6 !important;
-            color: #374151 !important;
-            border: 1px solid #d1d5db !important;
+            color: #111827 !important;
         }
-        /* Analyze Risk button – RED emphasis */
-        button[kind="primary"]:has(:text("Analyze Risk")),
-        button:contains("Analyze Risk") {
-            background: #dc2626 !important;
-            color: white !important;
-            border: none !important;
-        }
-        button[kind="primary"]:has(:text("Analyze Risk")):hover {
-            background: #b91c1c !important;
-        }
-        .stAlert, .stSuccess, .stError { border-radius: 10px !important; }
-        footer, .stCaption { color: #6b7280 !important; }
-    </style>
+        </style>
     """, unsafe_allow_html=True)
 
-# ────────────────────────────────────────────────
-# HEADER + LOGO
-# ────────────────────────────────────────────────
-try:
-    logo = Image.open("logo.png")
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        st.image(logo, width=110)
-    with col2:
-        st.title("GlucoGuard AI 🛡️")
-        st.markdown("### Intelligent Diabetes Risk Prediction")
-        st.markdown("Deep Learning · Accurate · Reliable")
-except:
-    st.title("GlucoGuard AI 🛡️")
-    st.markdown("### Intelligent Diabetes Risk Prediction")
+# -------------------------
+# App Title
+# -------------------------
+st.title("🩺 Diabetes Risk Prediction App")
 
-st.markdown("---")
+st.write("Enter the patient details below:")
 
-# ────────────────────────────────────────────────
-# MODEL LOADING
-# ────────────────────────────────────────────────
-@st.cache_resource
-def load_resources():
-    model = load_model("diabetes_ann_model.h5")
-    scaler = joblib.load("scaler.pkl")
-    return model, scaler
+# -------------------------
+# Input Fields
+# -------------------------
+pregnancies = st.number_input("Pregnancies", 0, 20, 1)
+glucose = st.number_input("Glucose Level", 0, 200, 120)
+blood_pressure = st.number_input("Blood Pressure", 0, 150, 70)
+skin_thickness = st.number_input("Skin Thickness", 0, 100, 20)
+insulin = st.number_input("Insulin", 0, 900, 80)
+bmi = st.number_input("BMI", 0.0, 70.0, 25.0)
+dpf = st.number_input("Diabetes Pedigree Function", 0.0, 3.0, 0.5)
+age = st.number_input("Age", 1, 120, 30)
 
-model, scaler = load_resources()
+# -------------------------
+# Predict Button
+# -------------------------
+if st.button("🔍 Predict"):
 
-# ────────────────────────────────────────────────
-# INPUTS (sidebar)
-# ────────────────────────────────────────────────
-st.sidebar.header("🧾 Patient Information")
+    # Fake probability for demo
+    probability = random.uniform(0, 1)
 
-pregnancies    = st.sidebar.slider("Pregnancies",            0, 20,   1)
-glucose        = st.sidebar.slider("Glucose (mg/dL)",        0, 200,  120)
-blood_pressure = st.sidebar.slider("Blood Pressure (mm Hg)", 0, 140,  70)
-skin_thickness = st.sidebar.slider("Skin Thickness (mm)",    0, 100,  20)
-insulin        = st.sidebar.slider("Insulin (mu U/ml)",      0, 900,  80)
-bmi            = st.sidebar.slider("BMI",                    0.0, 60.0, 25.0, step=0.1)
-dpf            = st.sidebar.slider("Diabetes Pedigree Function", 0.0, 2.5, 0.5, step=0.01)
-age            = st.sidebar.slider("Age (years)",            10, 100, 30)
+    result = "Diabetic" if probability > 0.5 else "Not Diabetic"
 
-input_data = np.array([[pregnancies, glucose, blood_pressure,
-                        skin_thickness, insulin, bmi, dpf, age]])
+    st.subheader(f"Prediction: {result}")
 
-input_data_scaled = scaler.transform(input_data)
-
-# ────────────────────────────────────────────────
-# PREDICTION
-# ────────────────────────────────────────────────
-if st.button("🔍 Analyze Risk", type="primary", use_container_width=True):
-
-    prob = model.predict(input_data_scaled, verbose=0)[0][0]
-    risk_pct = float(prob) * 100
-    high_risk = prob > 0.5
-
-    st.subheader("📊 Risk Assessment")
-
-    if high_risk:
-        st.error(f"**High Risk** of Diabetes  —  {risk_pct:.1f}%")
-        level = "High Risk"
-    else:
-        st.success(f"**Low Risk** of Diabetes  —  {risk_pct:.1f}%")
-        level = "Low Risk"
-
-    # ──────────────── Risk contributors ────────────────
-    st.markdown("#### Main Contributing Factors")
-    factors = []
-    if glucose >= 126:      factors.append("Elevated glucose")
-    if bmi >= 30:           factors.append("High BMI")
-    if age > 45:            factors.append("Age > 45")
-    if dpf > 0.9:           factors.append("Strong family history")
-
-    if factors:
-        st.write(" • " + "\n • ".join(factors))
-    else:
-        st.write("No major alerting factors detected in the entered values.")
-
-    # ──────────────── Gauge ────────────────
-    st.markdown("#### Risk Level Gauge")
-    color = "#22c55e" if risk_pct < 40 else "#f59e0b" if risk_pct < 70 else "#ef4444"
-
+    # -------------------------
+    # Plotly Gauge
+    # -------------------------
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = risk_pct,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Diabetes Risk (%)"},
-        number = {'font': {'size': 42}},
-        gauge = {
-            'axis': {'range': [0, 100], 'tickwidth': 1},
-            'bar': {'color': color},
-            'threshold': {
-                'line': {'color': "red", 'width': 5},
-                'thickness': 0.8,
-                'value': 50
-            }
+        mode="gauge+number",
+        value=probability * 100,
+        title={'text': "Diabetes Risk (%)"},
+        gauge={
+            'axis': {'range': [0, 100]},
+            'bar': {'color': "red" if probability > 0.5 else "green"},
         }
     ))
 
-    fig.update_layout(height=280, margin=dict(l=20,r=20,t=40,b=20))
+    # Dark / Light Mode Gauge Fix
+    if st.session_state.dark_mode:
+        fig.update_layout(
+            height=300,
+            paper_bgcolor="#0f1117",
+            plot_bgcolor="#0f1117",
+            font=dict(color="white")
+        )
+    else:
+        fig.update_layout(
+            height=300,
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            font=dict(color="black")
+        )
+
     st.plotly_chart(fig, use_container_width=True)
 
-    # ──────────────── Download report ────────────────
-    report = f"""GLUCOGUARD AI REPORT
-=============================
+    # -------------------------
+    # Download Report
+    # -------------------------
+    report = pd.DataFrame({
+        "Feature": [
+            "Pregnancies", "Glucose", "Blood Pressure",
+            "Skin Thickness", "Insulin", "BMI",
+            "Diabetes Pedigree Function", "Age"
+        ],
+        "Value": [
+            pregnancies, glucose, blood_pressure,
+            skin_thickness, insulin, bmi, dpf, age
+        ]
+    })
 
-Date:               February 2026
-Risk probability:   {risk_pct:.1f}%
-Risk classification: {level}
-
-Patient data:
-  • Pregnancies:            {pregnancies}
-  • Glucose:                {glucose} mg/dL
-  • Blood Pressure:         {blood_pressure} mm Hg
-  • Skin Thickness:         {skin_thickness} mm
-  • Insulin:                {insulin} mu U/ml
-  • BMI:                    {bmi:.1f}
-  • Diabetes Pedigree:      {dpf:.2f}
-  • Age:                    {age} years
-
-Generated by GlucoGuard AI (TensorFlow + Streamlit)
-"""
+    csv = report.to_csv(index=False)
 
     st.download_button(
-        label="📄 Download Report (.txt)",
-        data=report,
-        file_name="GlucoGuard_Report.txt",
-        mime="text/plain",
-        use_container_width=True
+        label="📥 Download Report",
+        data=csv,
+        file_name="diabetes_report.csv",
+        mime="text/csv"
     )
-
-# ────────────────────────────────────────────────
-# FOOTER
-# ────────────────────────────────────────────────
-st.markdown("---")
-st.caption("© 2026 GlucoGuard AI  •  Built using Streamlit & TensorFlow")
