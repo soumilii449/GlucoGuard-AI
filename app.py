@@ -22,12 +22,13 @@ if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
 # ────────────────────────────────────────────────
-# GLOBAL BUTTON STYLING (rounded + shadow + hover lift)
+# GLOBAL BUTTON STYLING
 # ────────────────────────────────────────────────
 st.markdown("""
     <style>
+        /* Base button style - rounded + shadow */
         div.stButton > button,
-        div.stDownloadButton > button {
+        div.element-container[data-testid="stDownloadButton"] button {
             border-radius: 12px !important;
             padding: 0.65rem 1.2rem !important;
             font-weight: 550 !important;
@@ -36,14 +37,9 @@ st.markdown("""
             transition: all 0.22s ease !important;
         }
         div.stButton > button:hover,
-        div.stDownloadButton > button:hover {
+        div.element-container[data-testid="stDownloadButton"] button:hover {
             box-shadow: 0 6px 14px rgba(0,0,0,0.20) !important;
             transform: translateY(-2px) !important;
-        }
-        div.stButton > button:active,
-        div.stDownloadButton > button:active {
-            transform: translateY(0) !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.16) !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -81,23 +77,21 @@ if st.session_state.dark_mode:
     <style>
         .stApp { background-color: #0f1117 !important; color: #e2e8f0 !important; }
         section[data-testid="stSidebar"] { background-color: #161b22 !important; border-right: 1px solid #334155 !important; }
-        h1, h2, h3, h4, h5, h6, p, div, span, label, .st-emotion-cache-1y4p8pa { color: #e2e8f0 !important; }
+        h1, h2, h3, h4, h5, h6, p, div, span, label { color: #e2e8f0 !important; }
         .stSlider label, .stSlider div { color: #cbd5e1 !important; }
         .stNumberInput input, .stTextInput input, .stSelectbox select {
-            background-color: #1e2530 !important;
-            color: #e2e8f0 !important;
-            border: 1px solid #475569 !important;
-            border-radius: 10px !important;
+            background-color: #1e2530 !important; color: #e2e8f0 !important;
+            border: 1px solid #475569 !important; border-radius: 10px !important;
         }
         button[kind="primary"], button[kind="secondary"] {
-            background-color: #334155 !important;
-            color: white !important;
+            background-color: #334155 !important; color: white !important;
         }
         button:hover { background-color: #475569 !important; }
         .stAlert, .stSuccess, .stError { background-color: #1e293b !important; color: #e2e8f0 !important; }
         footer, .stCaption { color: #94a3b8 !important; }
     </style>
     """, unsafe_allow_html=True)
+
 else:
     st.markdown("""
     <style>
@@ -108,12 +102,14 @@ else:
         }
         h1, h2, h3, h4, h5, h6, p, div, span, label { color: #111827 !important; }
         .stSlider label, .stSlider div { color: #374151 !important; }
+
         .stNumberInput input, .stTextInput input, .stSelectbox select {
             background-color: #ffffff !important;
             color: #111827 !important;
             border: 1px solid #d1d5db !important;
             border-radius: 10px !important;
         }
+
         /* Theme toggle buttons */
         div.stButton > button[kind="primary"] {
             background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
@@ -124,6 +120,7 @@ else:
             color: #374151 !important;
             border: 1px solid #d1d5db !important;
         }
+
         /* Analyze Risk – red */
         button:contains("Analyze Risk"),
         button[kind="primary"]:has(> div > span > p:contains("Analyze Risk")) {
@@ -133,23 +130,49 @@ else:
         button:contains("Analyze Risk"):hover {
             background: #b91c1c !important;
         }
-        /* Fix download button hover (no more black) */
-        div.stDownloadButton > button,
-        div.stButton > button {
-            transition: background-color 0.25s, color 0.25s, box-shadow 0.25s !important;
+
+        /* ──────────────────────────────────────────────── */
+        /*   Download button - explicit light mode control   */
+        /* ──────────────────────────────────────────────── */
+        div.element-container[data-testid="stDownloadButton"] button,
+        [data-testid="stDownloadButton"] button,
+        button[kind="secondary"]:has(> div > span > p:contains("Download Report")),
+        button:has(> div > span > p:contains("Download Report (.txt)")) {
+            background-color: #f3f4f6 !important;
+            color: #111827 !important;
+            border: 1px solid #d1d5db !important;
         }
-        div.stDownloadButton > button:hover,
-        div.stButton > button:hover:not(:contains("Analyze Risk")) {
+
+        div.element-container[data-testid="stDownloadButton"] button:hover,
+        [data-testid="stDownloadButton"] button:hover,
+        button[kind="secondary"]:hover:has(> div > span > p:contains("Download Report")),
+        button:hover:has(> div > span > p:contains("Download Report (.txt)")) {
             background-color: #e5e7eb !important;
-            color: #111827 !important;
+            color: #111827 !important !important;
+            border-color: #9ca3af !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
         }
-        div.stDownloadButton > button:active,
-        div.stDownloadButton > button:focus {
-            background-color: #d1d5db !important;
+
+        div.element-container[data-testid="stDownloadButton"] button:focus,
+        div.element-container[data-testid="stDownloadButton"] button:active,
+        [data-testid="stDownloadButton"] button:focus,
+        [data-testid="stDownloadButton"] button:active,
+        button:focus:has(> div > span > p:contains("Download Report")),
+        button:active:has(> div > span > p:contains("Download Report")) {
+            background-color: #cbd5e1 !important;
             color: #111827 !important;
+            border-color: #6b7280 !important;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
+            outline: none !important;
         }
-        /* Plotly gauge improvements in light mode */
+
+        /* Block Streamlit dark fallback aggressively */
+        div.element-container[data-testid="stDownloadButton"] button:hover,
+        [data-testid="stDownloadButton"] button:hover {
+            background-color: #e5e7eb !important;
+        }
+
+        /* Plotly gauge light mode fix */
         .js-plotly-plot .plotly .bg,
         .js-plotly-plot .plotly .paper-bg {
             fill: #ffffff !important;
@@ -160,11 +183,7 @@ else:
         .js-plotly-plot .plotly .number text {
             fill: #111827 !important;
         }
-        .js-plotly-plot .plotly .axislayer path,
-        .js-plotly-plot .plotly .tick text {
-            stroke: #4b5563 !important;
-            fill: #4b5563 !important;
-        }
+
         .stAlert, .stSuccess, .stError { border-radius: 10px !important; }
         footer, .stCaption { color: #6b7280 !important; }
     </style>
@@ -200,7 +219,7 @@ def load_resources():
 model, scaler = load_resources()
 
 # ────────────────────────────────────────────────
-# INPUTS (sidebar)
+# INPUTS
 # ────────────────────────────────────────────────
 st.sidebar.header("🧾 Patient Information")
 
@@ -236,7 +255,6 @@ if st.button("🔍 Analyze Risk", type="primary", use_container_width=True):
         st.success(f"**Low Risk** of Diabetes — {risk_pct:.1f}%")
         level = "Low Risk"
 
-    # ──────────────── Risk contributors ────────────────
     st.markdown("#### Main Contributing Factors")
     factors = []
     if glucose >= 126:      factors.append("Elevated glucose")
@@ -247,9 +265,8 @@ if st.button("🔍 Analyze Risk", type="primary", use_container_width=True):
     if factors:
         st.write(" • " + "\n • ".join(factors))
     else:
-        st.write("No major alerting factors detected in the entered values.")
+        st.write("No major alerting factors detected.")
 
-    # ──────────────── Gauge ────────────────
     st.markdown("#### Risk Level Gauge")
     color = "#22c55e" if risk_pct < 40 else "#f59e0b" if risk_pct < 70 else "#ef4444"
 
@@ -272,14 +289,13 @@ if st.button("🔍 Analyze Risk", type="primary", use_container_width=True):
 
     fig.update_layout(
         height=280,
-        margin=dict(l=20, r=20, t=40, b=20),
+        margin=dict(l=20,r=20,t=40,b=20),
         paper_bgcolor = "#ffffff" if not st.session_state.dark_mode else "#0f1117",
         font = dict(color = "#111827" if not st.session_state.dark_mode else "#e2e8f0")
     )
 
     st.plotly_chart(fig, use_container_width=True, theme=None)
 
-    # ──────────────── Download report ────────────────
     report = f"""GLUCOGUARD AI REPORT
 =============================
 Date:               February 2026
